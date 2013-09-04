@@ -1,53 +1,16 @@
-// var mapping = {};
-// var quote = "this is a test";
-// // var encryptedQuote = "guvf vf n grfg";
-// // var quoteDisplay = "____ __ _ ____";
-// var encryptedQuote = "";
-// var quoteDisplay = "";
-
-// function makeAGuess(a, b){
-// 	mapping[a] = b;
-// 	console.log(JSON.stringify(mapping));
-// 	console.log(encryptedQuote);
-
-// 	for(var key in mapping){
-// 		for (var loc=[],i=encryptedQuote.length;i--;) if (encryptedQuote[i]==key){
-// 			quoteDisplay = quoteDisplay.substring(0, i) + mapping[key] + quoteDisplay.substring(i+1);
-// 		}
-// 	}
-
-// 	console.log(quoteDisplay);
-
-// 	if(quoteDisplay.indexOf("_") == -1){
-// 		console.log("You figured it out!");
-// 	}
-// 	return mapping;
-// }
-
-// //generate quote and encrypted quote (set puzzle)
-// function encryptQuote(rawQuote){
-// 	quote = rawQuote;
-// 	encoding = {};
-
-// 	alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-// 	keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-// 	while(alphabet.length > 0){
-// 		var randomAlpha = Math.floor(Math.random()*alphabet.length);
-// 		encoding[keys[0]] = alphabet[randomAlpha];
-// 		keys.splice(0,1);
-// 		alphabet.splice(randomAlpha, 1);
-// 	}
-// 	for (var i = 0, len = quote.length; i < len; i++) {
-// 		if(quote[i] == " "){
-// 			encryptedQuote = encryptedQuote + " ";
-// 			quoteDisplay = quoteDisplay + " ";
-// 			continue;
-// 		}
-// 			encryptedQuote = encryptedQuote + encoding[quote[i]];
-// 			quoteDisplay = quoteDisplay + "_";
-// 	}
-
-// }
+// todo:
+// change quotes for displays into char arrays
+// deal with capital letters: 
+//		-in original quote (keep caps in those locations)
+//		-in guesses - ignore caps
+//
+//	make pretty (css)
+//  -print out correct guesses in a different color in quoteDisplay
+//		-animate? ie flash a couple times a correct guess
+//	-center elements on screen
+//	-use pretty button
+//
+//	eventually: make AJAX calls to get real quotes
 
 
 (function() {
@@ -57,13 +20,6 @@
   $(function init() {
 
 	setUpEncoding();
-	// encoding = generateEncoding();
-	// blankQuote = $("p#encrypted-quote-blank");
-
-
-	// displayQuote("a");
-	// $('#guess-button').on('click', processGuess);
-	// guessMapping = {};
 
 	playerInfoElement = $('<p>add info here</p>').hide().appendTo('body');
   });
@@ -111,7 +67,8 @@
 		}
 	}
 	//reset quote display text element
-	blankQuote.html(quoteDisplay);
+	// blankQuote.html(quoteDisplay);
+	blankQuote.html().replace();
 
 	//if no "_" then check if they are correct
 	if(quoteDisplay.indexOf("_") == -1){
@@ -119,9 +76,6 @@
 			playerInfoElement.html("You figured it out!").css('color', 'MidnightBlue').show();
 			if(playAgainButton === undefined){
 				console.log("creating button");
-				// playAgainButton = $('body').append(
-				// 			$('<button>Play again</button>').click( function () { setUpEncoding(); })
-				// 			);
 				playAgainButton = $('<button>Play again</button>').click( function () { setUpEncoding(); }).appendTo($('body'));
 				console.log(playAgainButton.html);
 			}

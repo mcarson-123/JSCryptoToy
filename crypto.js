@@ -53,7 +53,9 @@
     }
 
     // Handles a player's guess.
-    function processGuess(a,b) {
+    function processGuess(ev) {
+        ev.preventDefault();
+        
         if (playerInfoElement.is(':visible')) { 
             playerInfoElement.hide();
         }

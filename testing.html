@@ -3,22 +3,29 @@
 
 <head>
     <title>Cryptograms</title>
-<head>
+    <link rel="stylesheet" href="styles.css" />
+</head>
 
 <body>
     <p id="encrypted-quote">Waiting...</p>
     <p id="evaluated-quote">Waiting...</p>
+
     <hr>
+    
     <p>Make a guess:</p>
     
-    <form id="guess-form">
+    <form action="" id="guess-form">
         <input type="text" size="10" maxlength="1" id="guess-from">
-        maps to
+        stands for
         <input type="text" size="10" maxlength="1" id="guess-to">
         
         <input type="submit" id="guess-button">
     </form>
+
+    <p id="player-info"></p>
+
+    <button id="play-again">Play again</button>
     
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script src="crypto.js"></script>
 </body>

@@ -1,0 +1,25 @@
+body {
+    text-align: center;
+}
+
+#player-info, #play-again {
+    display: none;
+}
+
+#guess-button {
+    display: block;
+    visibility: hidden;
+}
+
+#encrypted-quote, #evaluated-quote {
+    font-family: monospace;
+    font-size: 1.5em;
+}
+
+.warning {
+    color: #f00;
+}
+
+.congrats {
+    color: #00f;
+}

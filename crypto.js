@@ -1,102 +1,112 @@
 /**
- * todo:
- * change quotes for displays into char arrays
- * deal with capital letters: 
- * - in original quote (keep caps in those locations)
- * - in guesses (ignore caps)
- * improve presentation with CSS
- * eventually: make AJAX calls to get real quotes
- */
+
+ TODO:
+ - Fetch quotes from remote source
+ - Fix random encoding generator
+ - Additional actions: once-per-game hint; wipe out all guesses; give up and see quote; ...
+ - Disable inputs when the puzzle is solved
+ - Improve visuals with better CSS
+
+*/
 
 (function() {
 
     var encryptedQuote,
-        quoteDisplay,
-        encoding,
-        blankQuote,
-        guessMapping,
-        playerInfoElement,
-        playAgainButton,
+        evaluatedQuote,
         guessFrom,
         guessTo,
-        alphabet = 'abcdefghijklmnopqrstuvwxyz'.split('');
+        playerInfo,
+        playAgain,
+        actualEncoding = {},
+        playerEncoding = {},
+        encryptedQuoteText = '',
+        alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),
+        alphabetLetterRegex = /^[A-Z]$/;
 
     $(function init() {
-        playerInfoElement = $('<p>').hide().appendTo('body');
-        playAgainButton = $('<button>').text('Play again').click(setUpEncoding).hide().appendTo('body');
-        blankQuote = $("#encrypted-quote-blank");
-        guessFrom = $("#guess-from");
-        guessTo = $("#guess-to")
+        encryptedQuote = $('#encrypted-quote');
+        evaluatedQuote = $('#evaluated-quote');
+        guessFrom = $('#guess-from');
+        guessTo = $('#guess-to')
+        playerInfo = $('#player-info');
+        playAgain = $('#play-again').click(reset);
 
-        setUpEncoding();
+        $('#guess-form').on('submit', processGuess);
 
-        $('#guess-button').on('click', processGuess); // TODO: convert to proper event handler
+        reset();
     });
 
-    // TODO: refactor into one-time setup and reset functions
-    function setUpEncoding() {
-        if (playAgainButton !== undefined && playAgainButton.is(':visible')) {
-            playAgainButton.hide();
-        }
+    // Resets the game.
+    function reset(ev) {
+        if (ev) ev.preventDefault();
 
-        encoding = generateEncoding();
+        playAgain.hide();
+        playerInfo.hide();
 
-        displayQuote("a");
-        guessMapping = {};
-    }
+        actualEncoding = generateRandomEncoding();
+        playerEncoding = {};
+        encryptedQuoteText = encode(getQuote(), actualEncoding);
 
-    // Displays the encrypted quote and blank quote to be filled in.
-    function displayQuote(quote) {
-        encryptQuote(quote);
-        $("#encrypted-quote").html(encryptedQuote);
-        blankQuote.html(quoteDisplay); // TODO: avoid html()
+        updateDisplay();
     }
 
     // Handles a player's guess.
-    function processGuess(ev) {
-        ev.preventDefault();
-        
-        if (playerInfoElement.is(':visible')) { 
-            playerInfoElement.hide();
-        }
-        var guessEncryptedLetter = guessFrom.val();
-        var guessRealLetter = guessTo.val();
-        if (guessEncryptedLetter.length != 1 || guessRealLetter.length != 1) {
-            playerInfoElement.text("guesses must be single letters").css('color', 'crimson').show(); // TODO: kill css()
+    function processGuess(ev) {        
+        if (ev) ev.preventDefault();
+
+        playerInfo.hide();
+
+        var encrypted = guessFrom.val().toUpperCase();
+        var actual = guessTo.val().toUpperCase();
+
+        // ensure that the player has provided a valid guess
+        if (!alphabetLetterRegex.test(encrypted) || !alphabetLetterRegex.test(actual)) {
+            playerInfo
+                .text('Guesses must be single letters of the alphabet.')
+                .removeClass('congrats')
+                .addClass('warning')
+                .show();
             return;
         }
-        
-        guessMapping[guessEncryptedLetter] = guessRealLetter;
 
-        for (var i = 0; i < encryptedQuote.length; i++) {
-            var encryptedLetter = encryptedQuote.charAt(i);
-            //if mapping contains encrypted letter,  set character at x in quote display to mapping[encryptedLetter]
-            if (encryptedLetter in guessMapping) {
-                quoteDisplay = quoteDisplay.substring(0, i) + guessMapping[encryptedLetter] + quoteDisplay.substring(i+1);
+        // don't let the same encrypted letter stand for more than one real letter
+        for (var letter in playerEncoding) {
+            if (playerEncoding.hasOwnProperty(letter) && playerEncoding[letter] === encrypted) {
+                delete playerEncoding[letter];
+                break;
             }
         }
-        //reset quote display text element
-        // blankQuote.html(quoteDisplay);
-        blankQuote.html().replace();
-    
-        //if no "_" then check if they are correct
-        if (quoteDisplay.indexOf("_") == -1) {
-            if (checkWinCondition()) {
-                playerInfoElement.text("You figured it out!").css('color', 'MidnightBlue').show(); // TODO: kill css()
-                playAgainButton.show();
-            }
+        
+        // record the new guess and update the display
+        playerEncoding[actual] = encrypted;
+        updateDisplay();
+
+        // check whether the player has successfully decoded the quote    
+        if (checkWinCondition()) {
+            playAgain.show();
+            playerInfo
+                .text('You figured it out!')
+                .removeClass('warning')
+                .addClass('congrats')
+                .show();
         }
+    }
+
+    // Updates the puzzle lines and clears the controls.
+    function updateDisplay() {
+        encryptedQuote.text(encryptedQuoteText);
+        evaluatedQuote.text(decode(encryptedQuoteText, playerEncoding));
+        guessFrom.val('').focus();
+        guessTo.val('');
     }
 
     // Checks whether the evaluated quote matches the actual quote.
     function checkWinCondition() {
-        for (var i = 0; i < quoteDisplay.length; i++) {
-            if (quoteDisplay.charAt(i) == " ") {
-                continue;
-            }
-            if (encryptedQuote.charAt(i) != encoding[quoteDisplay.charAt(i)]) {
-                console.log("encrypted letter: " + encryptedQuote.charAt(i) + " real letter: " + quoteDisplay.charAt(i) + " " + encoding[quoteDisplay.charAt(i)]);
-                console.log(encoding);
+        var evaluatedQuoteText = decode(encryptedQuoteText, playerEncoding);
+        for (var i = 0; i < evaluatedQuoteText.length; i++) {
+            var evaluatedLetter = evaluatedQuoteText[i];
+            var encryptedLetter = encryptedQuoteText[i];
+            if (alphabetLetterRegex.test(encryptedLetter) && actualEncoding[evaluatedLetter] !== encryptedLetter) {
                 return false;
             }
         }
@@ -104,31 +114,62 @@
     }
 
     // Generates an encoding of real letters to encrypted letters.
-    function generateEncoding() {
-        encoding = {};
+    // TODO: This method still has an edge case that can result in an infinite loop.
+    // Write a fool-proof way to select values so that no letter maps to itself.
+    function generateRandomEncoding() {
+        var encoding = {};
         var keys = alphabet.slice(0);
-        while (alphabet.length > 0) {
-            var randomAlpha = Math.floor(Math.random() * alphabet.length);
-            encoding[keys[0]] = alphabet[randomAlpha];
-            keys.splice(0,1);
-            alphabet.splice(randomAlpha, 1);
+        var vals = alphabet.slice(0);
+
+        while (keys.length > 0) {
+            var key = keys.shift();
+            var val_idx = (function getNonMatchingLetter() {
+                var idx = Math.floor(Math.random() * vals.length);
+                return vals[idx] === key ? getNonMatchingLetter() : idx;
+            })();
+            encoding[key] = vals.splice(val_idx, 1).pop();
         }
+
         return encoding;
     }
 
-    // Generate quote and encrypted quote (set puzzle)
-    function encryptQuote(rawQuote) {
-        encryptedQuote = "";
-        quoteDisplay = "";
+    // Produces an encrypted string from a plaintext and an encoding.
+    function encode(plaintext, encoding) {
+        var result = plaintext.split('');
+        for (var i = 0; i < result.length; i++) {
+            var plaintextLetter = result[i].toUpperCase();
+            result[i] = encoding[plaintextLetter] || plaintextLetter;
+        }
+        return result.join('');
+    }
 
-        for (var i = 0, len = rawQuote.length; i < len; i++) {
-            if (rawQuote[i] == " ") {
-                encryptedQuote = encryptedQuote + " ";
-                quoteDisplay = quoteDisplay + " ";
-                continue;
+    // Produces a (supposed) plaintext from an encrypted string and an encoding.
+    // Letters that aren't available in the encoding are transcribed as underscores.
+    function decode(encrypted, encoding) {
+        var result = encrypted.split('');
+        var invertedEncoding = _invertEncoding(encoding);
+        for (var i = 0; i < result.length; i++) {
+            var encryptedLetter = result[i].toUpperCase();
+            if (alphabetLetterRegex.test(encryptedLetter)) {
+                result[i] = invertedEncoding[encryptedLetter] || '_';
             }
-            encryptedQuote = encryptedQuote + encoding[rawQuote[i]];
-            quoteDisplay = quoteDisplay + "_";
+        }
+        return result.join('');
+
+        function _invertEncoding(enc) {
+            inverted = {};
+            for (var letter in enc) {
+                if (enc.hasOwnProperty(letter)) {
+                    inverted[enc[letter]] = letter;
+                }
+            }
+            return inverted;
         }
     }
+
+    // TODO: Fetch quotes from a remote source.
+    function getQuote() {
+        return 'Isn\'t JavaScript so much fun?';
+    }
+
 })();

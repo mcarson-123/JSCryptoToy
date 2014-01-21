@@ -1,135 +1,203 @@
 // todo:
-// change quotes for displays into char arrays
-// deal with capital letters: 
-//		-in original quote (keep caps in those locations)
-//		-in guesses - ignore caps
-//
-//	make pretty (css)
+//     make pretty (css)
 //  -print out correct guesses in a different color in quoteDisplay
-//		-animate? ie flash a couple times a correct guess
-//	-center elements on screen
-//	-use pretty button
-//
-//	eventually: make AJAX calls to get real quotes
-
-
+//             -animate? ie flash a couple times a correct guess
+//     -center elements on screen
+//     -use pretty button
 (function() {
+    var quote = {},
+        allQuotes = {},
+        encryptedQuote,
+        encryptedQuoteText = [],
+        evaluatedQuote,
+        encoding = {},//plain letter -> encoded letter
+        guesses = {},//encoded letter -> plain letter (represents player's guesses)
+        guessFrom,
+        guessTo,
+        playerInfo,
+        resetButton,
+        gameSpace,
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
 
-  var encryptedQuote, quoteDisplay, encoding, blankQuote, guessMapping, playerInfoElement, playAgainButton;
+    $(function init() {
+        gameSpace = $("#game-space");
+        encryptedQuote = $("#encrypted-quote");
+        evaluatedQuote = $("#evaluated-quote");
+        guessFrom = $("#guess-from");
+        guessTo = $("#guess-to");
+        playerInfo = $("#player-info");
+        resetButton = $("#play-again").click(setUpGame);
 
-  $(function init() {
+        $('#guess-form').on('submit', processGuess);
+        getQuote();
 
-	setUpEncoding();
+        setUpGame();
 
-	playerInfoElement = $('<p>add info here</p>').hide().appendTo('body');
-  });
-	
-	function setUpEncoding(){
+    });
 
-	if(playAgainButton !== undefined && playAgainButton.is(':visible')){
-		playAgainButton.hide();
-	}
+    function setUpGame(){
+        guesses = {};
+        playerInfo.html('');
 
-	encoding = generateEncoding();
-	blankQuote = $("p#encrypted-quote-blank");
+        // check if a quote file has already been selected
+        if(allQuotes.length && allQuotes.length !== 0) {
+            gameSpace.show();
+            var randomIndex = Math.floor(Math.random()*allQuotes.length);
+            quote = allQuotes[randomIndex].split('');
+            encoding = generateEncoding();
+            encryptedQuote.text((encryptedQuoteText = encryptQuote()).join(""));
+            evaluatedQuote.text(evaluateQuote().join(""));
+            resetButton.hide();
+        }else{
+            playerInfo.html('Please select a file of quotes to begin');
+        }
 
+    }
 
-	displayQuote("a");
-	$('#guess-button').on('click', processGuess);
-	guessMapping = {};
-  }
+    function getQuote(){
+        var reader = new FileReader();
+        reader.onload = generateNewQuote;
+        $("#quoteFile").on("change", function() {
+            reader.readAsText(this.files[0]);
+        });
+    }
 
-	//display encrypted quote and blank quote to be filled in
-  function displayQuote(quote) {
-	encryptQuote(quote);
-	$("p#encrypted-quote").html(encryptedQuote);
-	blankQuote.html(quoteDisplay);
-  }
+    function generateNewQuote(evt){
+        allQuotes = this.result.split(/\n/);
+        allQuotes = _.filter(allQuotes, function(quote){
+            return (/\S/).test(quote);
+        });
+        setUpGame();
+    }
 
-  function processGuess(a,b){
-	if(playerInfoElement.is(':visible')){
-		playerInfoElement.hide();
-	}
-	var guessEncryptedLetter = $("#guess-from").val();
-	var guessRealLetter = $("#guess-to").val();
-	if(guessEncryptedLetter.length != 1 || guessRealLetter.length != 1){
-		playerInfoElement.html("guesses must be single letters").css('color', 'crimson').show();
-		return;
-	}
-	
-	guessMapping[guessEncryptedLetter] = guessRealLetter;
+    function generateEncoding(){
+        var encodingValues = alphabet.slice();
+        var encoding = {};
 
-	for (var i = 0; i < encryptedQuote.length; i++) {
-		var encryptedLetter = encryptedQuote.charAt(i);
-		//if mapping contains encrypted letter,  set character at x in quote display to mapping[encryptedLetter]
-		if(encryptedLetter in guessMapping){
-			quoteDisplay = quoteDisplay.substring(0, i) + guessMapping[encryptedLetter] + quoteDisplay.substring(i+1);
-		}
-	}
-	//reset quote display text element
-	// blankQuote.html(quoteDisplay);
-	blankQuote.html().replace();
+        // takes a copy of the alphabet array and moves each letter to a random index. 
+        // it is possible that by the end a letter will have a mapping to itself, the recursive method
+        // called below (ensureUniqueMapping()) attempts to fix any cases of this.
+        $.each(alphabet, function encode(index, alphaLetter){
+            var randomIndex = Math.floor(Math.random()*alphabet.length);
+            encodingValues = _.without(encodingValues, alphaLetter);
+            encodingValues.splice(randomIndex, 0, alphaLetter);
 
-	//if no "_" then check if they are correct
-	if(quoteDisplay.indexOf("_") == -1){
-		if(checkWinCondition()){
-			playerInfoElement.html("You figured it out!").css('color', 'MidnightBlue').show();
-			if(playAgainButton === undefined){
-				console.log("creating button");
-				playAgainButton = $('<button>Play again</button>').click( function () { setUpEncoding(); }).appendTo($('body'));
-				console.log(playAgainButton.html);
-			}
-			playAgainButton.show();
-			return;
-		}
-	}
-  }
+        });
 
-	function checkWinCondition(){
-		for(var i = 0; i < quoteDisplay.length; i++){
-			if(quoteDisplay.charAt(i) == " "){
-				continue;
-			}
-			if(encryptedQuote.charAt(i) != encoding[quoteDisplay.charAt(i)]){
-				console.log("encrypted letter: "+encryptedQuote.charAt(i)+ " real letter: "+ quoteDisplay.charAt(i) + " " +encoding[quoteDisplay.charAt(i)]);
-				console.log(encoding);
-				return false;
-			}
-		}
-		return true;
-	}
+        //attempt to ensure no letter maps to itself
+        encodingValues = ensureUniqueMapping(encodingValues);
 
-/**
-encoding = {realLetter: encryped letter}
-*/
-  function generateEncoding(){
-	encoding = {};
-	alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-		keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'];
-		while(alphabet.length > 0){
-			var randomAlpha = Math.floor(Math.random()*alphabet.length);
-			encoding[keys[0]] = alphabet[randomAlpha];
-			keys.splice(0,1);
-			alphabet.splice(randomAlpha, 1);
-		}
-		return encoding;
-  }
+        //generate encoding map of plain letter -> encoded letter
+        $.each(alphabet, function encode(index, alphaLetter){
+            encoding[alphaLetter] = encodingValues[index];
+        });
+        return encoding;
+    }
 
-  //generate quote and encrypted quote (set puzzle)
-	function encryptQuote(rawQuote){
-		encryptedQuote = "";
-		quoteDisplay = "";
+    function ensureUniqueMapping(encodingValues){
+        $.each(alphabet, function encode(index, alphaLetter){
+            if(alphaLetter == encodingValues[index]){
+                //swap with next encoding, using wrap for end value
+                var swapIndex = index+1;
+                if (alphaLetter == _.last(alphabet)) {
+                    swapIndex = 0;
+                }
+                encodingValues[index] = encodingValues[swapIndex];
+                encodingValues[swapIndex] = alphaLetter;
+                //check again for unique mapping now we've fixed one instance.
+                ensureUniqueMapping(encodingValues);
+            }
+        });
 
-		for (var i = 0, len = rawQuote.length; i < len; i++) {
-			if(rawQuote[i] == " "){
-				encryptedQuote = encryptedQuote + " ";
-				quoteDisplay = quoteDisplay + " ";
-				continue;
-			}
-				encryptedQuote = encryptedQuote + encoding[rawQuote[i]];
-				quoteDisplay = quoteDisplay + "_";
-		}
-	}
+        return encodingValues;
+    }
 
+    function encryptQuote(){
+        var encryptedQuoteText = [];
+        $.each(quote, function(index, letter){
+            letter = letter.toUpperCase();
+            if (_.contains(alphabet, letter)) {
+                encryptedQuoteText.push(encoding[letter]);
+            } else {
+                encryptedQuoteText.push(letter);
+            }
+        });
+        return encryptedQuoteText;
+
+    }
+
+    function evaluateQuote(){
+        var evaluatedQuoteText = [];
+        $.each(encryptedQuoteText, function(index, letter){
+            if (_.contains(alphabet, letter)) {
+                if(_.contains(_.keys(guesses), letter) && guesses[letter] !== ''){
+                    evaluatedQuoteText.push(guesses[letter]);
+                }else{
+                    evaluatedQuoteText.push("_");
+                }
+            } else {
+                evaluatedQuoteText.push(letter);
+            }
+        });
+        return evaluatedQuoteText;
+    }
+
+    function processGuess(ev){
+        if (ev) ev.preventDefault();
+        playerInfo.html('');
+
+        var guessFromLetter = guessFrom.val().toUpperCase();
+        guessFrom.val('');
+        var guessToLetter = guessTo.val().toUpperCase();
+        guessTo.val('');
+
+        if(guessFromLetter == guessToLetter || !_.contains(alphabet, guessFromLetter) || !_.contains(alphabet, guessToLetter)){
+            playerInfo.html(( (guessFromLetter == guessToLetter) ? "Guesses must be unique" : "Guesses must be letters"));
+            playerInfo.removeClass('win')
+                        .addClass('warning');
+            guessFrom.focus();
+            return;
+        }
+
+        //do validation on guess
+        //check if guessTo aleady exists, if so remove it from previous guess
+        if(_.contains(_.values(guesses), guessToLetter)){
+            _.each(_.keys(guesses), function(guess){
+                if(guesses[guess] == guessToLetter){
+                    guesses[guess] = '';
+                }
+            });
+        }
+
+        guesses[guessFromLetter] = guessToLetter;
+        evaluatedQuote.text(evaluateQuote().join(""));
+        
+        if(evaluateWin()){
+            playerInfo.html("You Win!");
+            playerInfo.removeClass('warning')
+                        .addClass('win');
+            resetButton.show();
+            resetButton.focus();
+        }else{
+            guessFrom.focus();
+        }
+    }
+
+    function evaluateWin(){
+        // first check if there are no "_" in evaluated quote text
+        if (evaluatedQuote.text().indexOf("_") != -1) {
+            return false;
+        }
+        //check if guesses matches encoding (but opposite)
+        for(var i = 0; i < encryptedQuoteText.length; i++){
+            var evaluatedLetter = evaluatedQuote.text().split("")[i]; //may be actual letter
+            var encryptedLetter = encryptedQuoteText[i]; //encoding to actual letter
+            //encoding plain letter -> encoded letter
+            if(_.contains(alphabet, evaluatedLetter) && encoding[evaluatedLetter] != encryptedLetter){
+                return false;
+            }
+        }
+        return true;
+    }
 
 })();

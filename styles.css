@@ -1,0 +1,9 @@
+#game-space, #play-again{
+    display: none;
+}
+.warning{
+	color: Crimson;
+}
+.win{
+	color: RoyalBlue;
+}

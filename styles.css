@@ -1,3 +1,7 @@
+body {
+	text-align: center;
+}
+
 #game-space, #play-again{
     display: none;
 }
@@ -6,4 +10,13 @@
 }
 .win{
 	color: RoyalBlue;
+	font-size: xx-large;
+	font-family: cursive;
+}
+.correctGuess{
+	color: SlateBlue;
+}
+.quotes{
+	font-size: large;
+	font-family: sans-serif;
 }

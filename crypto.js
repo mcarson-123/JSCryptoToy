@@ -1,8 +1,6 @@
 // todo:
 //     make pretty (css)
-//  -print out correct guesses in a different color in quoteDisplay
 //             -animate? ie flash a couple times a correct guess
-//     -center elements on screen
 //     -use pretty button
 (function() {
     var quote = {},
@@ -46,7 +44,6 @@
             quote = allQuotes[randomIndex].split('');
             encoding = generateEncoding();
             encryptedQuote.text((encryptedQuoteText = encryptQuote()).join(""));
-            // evaluatedQuote.text(evaluateQuote().join(""));
             evaluateQuote();
             resetButton.hide();
         }else{
@@ -127,27 +124,9 @@
 
     }
 
-    // // create the text to print out for the guessed letters
-    // // starts out like "____" and gets populated with guesses
-    // function evaluateQuote(){
-    //     var evaluatedQuoteText = [];
-    //     $.each(encryptedQuoteText, function(index, letter){
-    //         if (_.contains(alphabet, letter)) {
-    //             if(_.contains(_.keys(guesses), letter) && guesses[letter] !== ''){
-    //                 evaluatedQuoteText.push(guesses[letter]);
-    //                 evaluatedQuoteText.push('<span class="CorrectGuess">'+guesses[letter]+'</span>');
-    //             }else{
-    //                 evaluatedQuoteText.push("_");
-    //             }
-    //         } else {
-    //             evaluatedQuoteText.push(letter);
-    //         }
-    //     });
-    //     return evaluatedQuoteText;
-    // }
-
     // create the text to print out for the guessed letters
     // starts out like "____" and gets populated with guesses
+    // correctly guessed letters get a css class (currently changes color)
     function evaluateQuote(){
         evaluatedQuote.text('');
         var invertedEncoding = _.invert(encoding); //want encoded letter -> plain letter (same format as guesses)
@@ -199,12 +178,6 @@
         guesses[guessFromLetter] = guessToLetter;
 
         evaluateQuote();
-        // evaluatedQuote.text(evaluateQuote().join(""));
-        // var evaluated = evaluateQuote();
-        // _.each(evaluated, function(letter){
-        //     evaluatedQuote.append('<span class="correctGuess">' + letter + '</span>');
-        // });
-        
         
         if(evaluateWin()){
             playerInfo.html("You Win!");
